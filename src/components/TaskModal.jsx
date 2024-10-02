@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import TaskForm from './TaskForm';
 
 const TaskModal = ({ open, onClose, onSave, selectedDate, initialData, categories }) => {
@@ -12,27 +13,34 @@ const TaskModal = ({ open, onClose, onSave, selectedDate, initialData, categorie
   };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box sx={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: 'background.paper',
-        boxShadow: 24,
-        p: 4,
-      }}>
-        <h2>{initialData ? 'Edit Task' : 'Add Task'}</h2>
-        <TaskForm 
-          onAddTask={handleSave} 
-          onClose={onClose} 
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>
+        {initialData ? 'Edit Task' : 'Add Task'}
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: (theme) => theme.palette.grey[500],
+          }}
+        >
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <TaskForm
+          onAddTask={handleSave}
+          onClose={onClose}
           initialData={initialData}
           categories={categories}
           selectedDate={selectedDate}
         />
-      </Box>
-    </Modal>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

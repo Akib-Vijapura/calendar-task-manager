@@ -10,14 +10,17 @@ const SearchFilter = ({ searchTerm, onSearchChange, categoryFilter, onCategoryFi
           label="Search tasks"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
+          variant="outlined"
         />
       </Grid>
       <Grid item xs={12} sm={6}>
-        <FormControl fullWidth>
-          <InputLabel>Filter by Category</InputLabel>
+        <FormControl fullWidth variant="outlined">
+          <InputLabel id="category-filter-label">Filter by Category</InputLabel>
           <Select
+            labelId="category-filter-label"
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
+            label="Filter by Category"
           >
             <MenuItem value="">All</MenuItem>
             {categories.map((cat) => (

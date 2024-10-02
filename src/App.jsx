@@ -1,33 +1,30 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline, Container, Paper, Box } from '@mui/material';
 import CalendarView from './pages/CalendarView';
+import { red } from '@mui/material/colors';
 
 const theme = createTheme({
-  palette: {
+   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#556cd6',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#19857b',
     },
-    background: {
-      default: '#f5f5f5',
+    error: {
+      main: red.A400,
     },
   },
 });
 
 const App = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <>
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-          <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
             <CalendarView />
-          </Paper>
-        </Container>
       </Box>
-    </ThemeProvider>
+    </>
   );
 };
 

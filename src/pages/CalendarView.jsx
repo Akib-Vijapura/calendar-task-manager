@@ -1,27 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import CalendarComponent from '../components/Calendar';
+import { Box, Container, Grid, Typography, Button, useTheme, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import AddIcon from '@mui/icons-material/Add';
+import CustomCalendar from '../components/Calendar';
 import TaskModal from '../components/TaskModal';
 import TaskList from '../components/TaskList';
 import SearchFilter from '../components/SearchFilter';
-import { Grid, Paper, Typography, Box, Snackbar } from '@mui/material';
 import { loadTasksFromLocalStorage, saveTasksToLocalStorage } from '../utils/localStorage';
 
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    h4: {
+      fontWeight: 600,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+        },
+      },
+    },
+  },
+});
+
 const categories = [
-  { value: 'work', label: 'Work', color: '#FF5733' },
-  { value: 'personal', label: 'Personal', color: '#33FF57' },
-  { value: 'important', label: 'Important', color: '#3357FF' },
-  { value: 'other', label: 'Other', color: '#FF33F1' }
+  { value: 'work', label: 'Work', color: '#3f51b5' },
+  { value: 'personal', label: 'Personal', color: '#4caf50' },
+  { value: 'important', label: 'Important', color: '#f44336' },
+  { value: 'other', label: 'Other', color: '#ff9800' }
 ];
 
 const CalendarView = () => {
   const [tasks, setTasks] = useState([]);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [completedFilter, setCompletedFilter] = useState('all');
   const [editingTask, setEditingTask] = useState(null);
-  const [view, setView] = useState('month');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   useEffect(() => {
     const storedTasks = loadTasksFromLocalStorage();
@@ -36,44 +65,29 @@ const CalendarView = () => {
     }
   }, [tasks]);
 
-  const handleAddTask = (slotInfo) => {
-    setSelectedDate(slotInfo.start);
+  const handleAddTask = (date) => {
+    setSelectedDate(date);
     setEditingTask(null);
     setModalOpen(true);
   };
 
   const handleSaveTask = (task) => {
-    try {
-      let updatedTasks;
-      if (editingTask) {
-        updatedTasks = tasks.map((t) => 
-          t.id === editingTask.id ? { ...task, id: t.id } : t
-        );
-        setSnackbar({ open: true, message: 'Task updated successfully', severity: 'success' });
-      } else {
-        updatedTasks = [...tasks, { ...task, id: Date.now() }];
-        setSnackbar({ open: true, message: 'Task added successfully', severity: 'success' });
-      }
-      setTasks(updatedTasks);
-      saveTasksToLocalStorage(updatedTasks);
-      setEditingTask(null);
-      setModalOpen(false);
-    } catch (error) {
-      console.error('Error saving task:', error);
-      setSnackbar({ open: true, message: 'Error saving task. Please try again.', severity: 'error' });
+    let updatedTasks;
+    if (editingTask) {
+      updatedTasks = tasks.map((t) => 
+        t.id === editingTask.id ? { ...task, id: t.id } : t
+      );
+    } else {
+      updatedTasks = [...tasks, { ...task, id: Date.now() }];
     }
+    setTasks(updatedTasks);
+    setEditingTask(null);
+    setModalOpen(false);
   };
 
   const handleDeleteTask = (taskId) => {
-    try {
-      const newTasks = tasks.filter((task) => task.id !== taskId);
-      setTasks(newTasks);
-      saveTasksToLocalStorage(newTasks);
-      setSnackbar({ open: true, message: 'Task deleted successfully', severity: 'success' });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      setSnackbar({ open: true, message: 'Error deleting task. Please try again.', severity: 'error' });
-    }
+    const newTasks = tasks.filter((task) => task.id !== taskId);
+    setTasks(newTasks);
   };
 
   const handleEditTask = (taskId) => {
@@ -82,98 +96,121 @@ const CalendarView = () => {
       setEditingTask(taskToEdit);
       setSelectedDate(new Date(taskToEdit.startTime));
       setModalOpen(true);
-    } else {
-      setSnackbar({ open: true, message: 'Task not found', severity: 'error' });
     }
   };
 
   const handleToggleComplete = (taskId) => {
-    try {
-      const newTasks = tasks.map((task) => 
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      );
-      setTasks(newTasks);
-      saveTasksToLocalStorage(newTasks);
-      setSnackbar({ open: true, message: 'Task status updated', severity: 'success' });
-    } catch (error) {
-      console.error('Error updating task status:', error);
-      setSnackbar({ open: true, message: 'Error updating task status. Please try again.', severity: 'error' });
-    }
+    const newTasks = tasks.map((task) => 
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    );
+    setTasks(newTasks);
   };
 
   const filteredTasks = tasks.filter(task => 
     (task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     new Date(task.startTime).toLocaleDateString().includes(searchTerm)) &&
-    (categoryFilter === '' || task.category === categoryFilter)
+     task.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (categoryFilter === '' || task.category === categoryFilter) &&
+    (completedFilter === 'all' || 
+     (completedFilter === 'completed' && task.completed) ||
+     (completedFilter === 'active' && !task.completed))
   );
 
   const calendarEvents = filteredTasks.map(task => ({
     id: task.id,
     title: task.title,
+    description: task.description,
     start: new Date(task.startTime),
     end: new Date(task.endTime),
-    allDay: false,
+    category: task.category,
+    completed: task.completed,
     color: categories.find(cat => cat.value === task.category)?.color || '#808080'
   }));
 
+  const handleCompletedFilterChange = (event, newFilter) => {
+    if (newFilter !== null) {
+      setCompletedFilter(newFilter);
+    }
+  };
+
   return (
-    <Box sx={{ height: '100%' }}>
-      <Grid container spacing={3} sx={{ height: '100%' }}>
-        <Grid item xs={12}>
-          <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
-            <SearchFilter
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={setCategoryFilter}
-              categories={categories}
-            />
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={8} sx={{ height: 'calc(100% - 80px)' }}>
-          <Paper elevation={2} sx={{ p: 2, height: '100%' }}>
-            <CalendarComponent 
-              events={calendarEvents}
-              onAddTask={handleAddTask}
-              view={view}
-              onView={setView}
-            />
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4} sx={{ height: 'calc(100% - 80px)' }}>
-          <Paper elevation={2} sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-            <Typography variant="h6" gutterBottom>
-              Tasks
-            </Typography>
-            <TaskList 
-              tasks={filteredTasks}
-              onDeleteTask={handleDeleteTask}
-              onEditTask={handleEditTask}
-              onToggleComplete={handleToggleComplete}
-            />
-          </Paper>
-        </Grid>
-      </Grid>
+    <ThemeProvider theme={theme}>
+      <Box sx={{ flexGrow: 1, bgcolor: 'background.default', minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="xl">
+          <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, color: 'primary.main' }}>
+            Calendar Task Manager
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={8}>
+              <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, overflow: 'hidden' }}>
+                <CustomCalendar 
+                  events={calendarEvents}
+                  onAddTask={handleAddTask}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, p: 2 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleAddTask(new Date())}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                >
+                  Add New Task
+                </Button>
+                <SearchFilter
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  categoryFilter={categoryFilter}
+                  onCategoryFilterChange={setCategoryFilter}
+                  categories={categories}
+                />
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Filter by status:
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={completedFilter}
+                    exclusive
+                    onChange={handleCompletedFilterChange}
+                    aria-label="task completion filter"
+                    size="small"
+                    fullWidth
+                  >
+                    <ToggleButton value="all" aria-label="all tasks">
+                      All
+                    </ToggleButton>
+                    <ToggleButton value="active" aria-label="active tasks">
+                      Active
+                    </ToggleButton>
+                    <ToggleButton value="completed" aria-label="completed tasks">
+                      Completed
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+                <Box sx={{ mt: 2, maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+                  <TaskList 
+                    tasks={filteredTasks}
+                    onDeleteTask={handleDeleteTask}
+                    onEditTask={handleEditTask}
+                    onToggleComplete={handleToggleComplete}
+                  />
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
       <TaskModal
         open={isModalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingTask(null);
-        }}
+        onClose={() => setModalOpen(false)}
         onSave={handleSaveTask}
         selectedDate={selectedDate}
         initialData={editingTask}
-        categories={categories}  // Make sure this line is present
+        categories={categories}
       />
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
-        severity={snackbar.severity}
-      />
-    </Box>
+    </ThemeProvider>
   );
 };
 

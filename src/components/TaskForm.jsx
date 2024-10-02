@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Select, MenuItem, FormControl, InputLabel, FormHelperText } from '@mui/material';
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, FormHelperText, Box } from '@mui/material';
 
-
-const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
+const TaskForm = ({ onAddTask, onClose, initialData, categories, selectedDate }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -17,34 +16,35 @@ const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
       setStartTime(initialData.startTime ? new Date(initialData.startTime).toISOString().slice(0, 16) : '');
       setEndTime(initialData.endTime ? new Date(initialData.endTime).toISOString().slice(0, 16) : '');
       setCategory(initialData.category || '');
-    } else {
-      // Set default start time to current time rounded to nearest hour
-      const now = new Date();
-      now.setMinutes(0);
-      now.setSeconds(0);
-      setStartTime(now.toISOString().slice(0, 16));
-
-      // Set default end time to one hour from now
-      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-      setEndTime(oneHourLater.toISOString().slice(0, 16));
+    } else if (selectedDate) {
+      const startDate = new Date(selectedDate);
+      startDate.setMinutes(0);
+      startDate.setSeconds(0);
+      setStartTime(startDate.toISOString().slice(0, 16));
+      
+      const endDate = new Date(startDate);
+      endDate.setHours(endDate.getHours() + 1);
+      setEndTime(endDate.toISOString().slice(0, 16));
     }
-  }, [initialData]);
+  }, [initialData, selectedDate]);
 
   const validateForm = () => {
     const newErrors = {};
     const now = new Date();
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
 
     if (!title.trim()) newErrors.title = "Title is required";
     
     if (!startTime) {
       newErrors.startTime = "Start time is required";
-    } else if (new Date(startTime) < now) {
+    } else if (startDate < now) {
       newErrors.startTime = "Start time cannot be in the past";
     }
 
     if (!endTime) {
       newErrors.endTime = "End time is required";
-    } else if (new Date(endTime) <= new Date(startTime)) {
+    } else if (endDate <= startDate) {
       newErrors.endTime = "End time must be after start time";
     }
 
@@ -71,7 +71,7 @@ const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
       <TextField
         label="Title"
         value={title}
@@ -102,9 +102,6 @@ const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
         InputLabelProps={{ shrink: true }}
         error={!!errors.startTime}
         helperText={errors.startTime}
-        inputProps={{
-          min: new Date().toISOString().slice(0, 16)
-        }}
       />
       <TextField
         label="End Time"
@@ -117,15 +114,13 @@ const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
         InputLabelProps={{ shrink: true }}
         error={!!errors.endTime}
         helperText={errors.endTime}
-        inputProps={{
-          min: startTime
-        }}
       />
       <FormControl fullWidth margin="normal" error={!!errors.category}>
         <InputLabel>Category</InputLabel>
         <Select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          label="Category"
         >
           {categories.map((cat) => (
             <MenuItem key={cat.value} value={cat.value}>
@@ -135,10 +130,10 @@ const TaskForm = ({ onAddTask, onClose, initialData, categories }) => {
         </Select>
         {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
       </FormControl>
-      <Button type="submit" variant="contained" color="primary" fullWidth>
+      <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3, mb: 2 }}>
         {initialData ? 'Update Task' : 'Add Task'}
       </Button>
-    </form>
+    </Box>
   );
 };
 
