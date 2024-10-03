@@ -41,7 +41,6 @@ This project uses the following main dependencies:
 
 - React
 - Material-UI
-- react-big-calendar
 - date-fns
 
 ## Project Structure
